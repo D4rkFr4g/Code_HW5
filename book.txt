@@ -1,0 +1,9 @@
+Zane Melcho							CS116A
+Prof. Pollett						
+Due 11/18/2013
+
+19.1)
+No not all colors can be displayed. If the full color lasso were to fit in the 1st quadrant then one basis vector must be an imaginary color. We cannot find three vectors that both hit the lasso curve and contain the entire curve in their positive span. Additionally a monitor's phosphors max out at 1 and therefore the outputs are limited.
+
+19.3)
+This would imply that the shape of the color space would in fact be different. All colors would lie in the first quadrant, however the monitor would still be limited by the phosphors used and outputs would be limited.
