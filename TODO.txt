@@ -8,13 +8,9 @@
 
 - Aspect ratio set so tops and bottoms of trees occupy the whole vertical direction of the drawn scene.
 
-- z is distance to nearest tree from camera. Near = (z/2) Far at (3z/2)
-
 - Hit a for aspect mode. -, + keys increase decrease
 
 - Hit f for FoV. -, + keys increase decrease
-
-- Hit z for z-axis mode. -, + keys increase decrease camera (distance to near and far constant)
 
 - Gratuitous Triangle 1/4 ass tall as tree
 

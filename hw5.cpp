@@ -74,13 +74,15 @@ static RigidBody* makeTree();
 static const float g_frustMinFov = 60.0;  // A minimal of 60 degree field of view
 static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by updateFrustFovY)
 
-static const float g_frustNear = -0.1;    // near plane
-static const float g_frustFar = -50.0;    // far plane
+static float g_frustNear = -0.1;    // near plane
+static float g_frustFar = -50.0;    // far plane
+
 static const float g_groundY = 0.0;      // y coordinate of the ground
 static const float g_groundSize = 27.0;   // half the ground length
 
 static int g_windowWidth = 512;
 static int g_windowHeight = 512;
+static double g_aspect = g_windowWidth / g_windowHeight;
 static bool g_mouseClickDown = false;    // is the mouse button pressed
 static bool g_mouseLClickButton, g_mouseRClickButton, g_mouseMClickButton;
 static int g_mouseClickX, g_mouseClickY; // coordinates for mouse click event
@@ -419,6 +421,11 @@ static void initCamera()
 	//g_skyRbt = lookAt(eye, at, up); // Default camera
 	g_skyRbt.setRotation(Quat().makeXRotation(lookAt(eye,up))); // TODO Change so lookat is done after conversion to Matrix
 	g_eyeRbt = g_skyRbt;
+
+	// Initialize near and far
+	float z = -eye[2];
+	g_frustNear = z / 2.0;
+	g_frustFar = (3 * z) / 2.0;
 }
 /*-----------------------------------------------*/
 static void initGround() {
@@ -615,7 +622,7 @@ static void updateFrustFovY() {
 
 static Matrix4 makeProjectionMatrix() {
   return Matrix4::makeProjection(
-           g_frustFovY, g_windowWidth / static_cast <double> (g_windowHeight),
+           g_frustFovY, g_aspect,
            g_frustNear, g_frustFar);
 }
 /*-----------------------------------------------*/
@@ -773,11 +780,11 @@ static void keyboard(const unsigned char key, const int x, const int y)
 		{
 			if (mode == ASPECT)
 			{
-
+				g_aspect -= 0.1;
 			}
 			else if (mode == FOV)
 			{
-
+				g_frustFovY -= 0.1;
 			}
 			else if (mode == ZAXIS)
 			{
@@ -790,11 +797,11 @@ static void keyboard(const unsigned char key, const int x, const int y)
 		{
 			if (mode == ASPECT)
 			{
-
+				g_aspect += 0.1;
 			}
 			else if (mode == FOV)
 			{
-
+				g_frustFovY += 0.1;
 			}
 			else if (mode == ZAXIS)
 			{
@@ -867,8 +874,9 @@ int main(int argc, char * argv[]) {
 
 		initGLState();
 		initShaders();
-		initGeometry();
 		initCamera();
+		initGeometry();
+		
 
 /*		
 		//Debug stuff
