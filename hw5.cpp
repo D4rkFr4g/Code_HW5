@@ -6,10 +6,10 @@
 //
 ////////////////////////////////////////////////////////////////////////
 /****************************************************** 
-* Project:         CS 116A Homework #4
-* File:            hw4.cpp 
-* Purpose:         Implement a curve drawwing algorithm
-* Start date:      11/10/13 
+* Project:         CS 116A Homework #5
+* File:            hw5.cpp 
+* Purpose:         To experiment with projective transformations and with textures
+* Start date:      11/27/13 
 * Programmer:      Zane Melcho 
 * 
 ****************************************************** 
@@ -42,7 +42,7 @@
 #include "catmullRomSpline.h"
 
 #define M_PI 3.1415926535897932384626433832795;
-enum {I_POWER, I_SLERP, I_LERP, PAUSE};
+enum {ASPECT, FOV, ZAXIS};
 
 
 using namespace std;      // for string, vector, iostream, and other standard C++ stuff
@@ -69,7 +69,7 @@ static const bool g_Gl2Compatible = false;
 
 // Forward Declarations
 struct RigidBody;
-static RigidBody* makeDomino();
+static RigidBody* makeTree();
 
 static const float g_frustMinFov = 60.0;  // A minimal of 60 degree field of view
 static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by updateFrustFovY)
@@ -86,12 +86,8 @@ static bool g_mouseLClickButton, g_mouseRClickButton, g_mouseMClickButton;
 static int g_mouseClickX, g_mouseClickY; // coordinates for mouse click event
 static int g_activeShader = 0;
 static int g_numOfObjects = 0; //Number of objects to be drawn
-static int g_numOfControlPoints = 0;
-static float g_framesPerSecond = 32;
-static int g_interpolationType  = I_POWER;
 static bool isKeyboardActive = true;
-static Cvec3* g_splineArray;
-static int g_numOfInterpolantDominos = 5;
+static int mode = ASPECT;
 
 struct ShaderState {
   GlProgram program;
@@ -404,15 +400,6 @@ static float angleBetween(Cvec3 vectorOne, Cvec3 vectorTwo)
 /*-----------------------------------------------*/
 static float lookAt(Cvec3 eyePosition, Cvec3 upPosition)
 {
-	/*
-	float temp = dot(eyePosition, upPosition);
-	float eyeNorm = norm(eyePosition);
-	float atNorm = norm(upPosition);
-	temp = (temp / (eyeNorm * atNorm));
-	temp = acos(temp) * 180;
-	temp /= M_PI;
-	*/
-
 	return -(90 - angleBetween(eyePosition, upPosition));
 }
 /*-----------------------------------------------*/
@@ -475,11 +462,11 @@ static Geometry* initSpheres()
 	return new Geometry(&vtx[0], &idx[0], vbLen, ibLen);
 }
 
-static void initDominos()
+static void initTrees()
 {
 	/* PURPOSE:		Initializes each domino to it's position, scale, and rotation  
 	*/
-	int extraDominos = (g_numOfControlPoints - 4) * g_numOfInterpolantDominos;
+/*	int extraDominos = (g_numOfControlPoints - 4) * g_numOfInterpolantDominos;
 	int numOfDominos = g_numOfControlPoints + extraDominos;
 	g_numOfObjects = numOfDominos;	// Could cause an issue if a non domino object is added
 	g_rigidBodies = new RigidBody[numOfDominos];
@@ -534,11 +521,11 @@ static void initDominos()
 	{
 		g_rigidBodies[i].isChildVisible = false;
 	}
-
+*/
 	glutPostRedisplay();
 }
 /*-----------------------------------------------*/
-static RigidBody* makeDomino()
+static RigidBody* makeTree()
 {
 	/* PURPOSE:		Creates a domino object  
 		RETURNS:    RigidBody* that points to the domino
@@ -718,146 +705,6 @@ static void motion(const int x, const int y) {
 }
 
 /*-----------------------------------------------*/
-static void keyboardTimer(int value)
-{
-	// Flip Keyboard
-	isKeyboardActive = !isKeyboardActive;
-
-	float msecs = 10 * 1000;
-	
-	if (!isKeyboardActive)
-		glutTimerFunc(msecs, keyboardTimer, 0);
-}
-/*-----------------------------------------------*/
-static void animate(int value)
-{
-	// Static Animation General Variables
-	static float stopwatch = 0;
-	float msecsPerFrame = 1/(g_framesPerSecond / 1000);
-	static int animationPart = 0;
-	static bool isAnimating = true;
-	const static float stepsPerSecond = 10.0/2.0; // Time Allowed / Steps taken
-	static float totalTime = stepsPerSecond * 1 * 1000;
-	static float elapsedTime = 0;
-	static bool isFirstEntry = true;
-
-	// Static Animation Specific Variables
-	//static float 
-	
-	// Used to reset variables every time animation is run
-	if (isFirstEntry)
-	{
-		// Animation General Resets
-		isAnimating =  true;
-		stopwatch = 0;
-		animationPart = 0;
-
-		// Animation Specific Resets
-
-		// Must be here
-		isFirstEntry = false;
-	}
-
-	//Handles which part of animation is currently running
-	if (elapsedTime >= totalTime)
-	{
-		//g_eyeRbt.setRotation(end.getRotation());
-
-		if (animationPart == 0)
-		{
-
-		}
-		else
-		{
-			glutPostRedisplay();
-			isAnimating = false;
-		}
-		//Reset values to default for next Animation Part		
-		totalTime = stepsPerSecond * 1 * 1000;
-		elapsedTime = 0;
-
-		animationPart++;
-	}
-
-	if (isAnimating)
-	{
-		// Determine percentage of animation
-		float alpha = elapsedTime / totalTime;
-
-
-		// Update Times and redisplay
-		elapsedTime += msecsPerFrame;
-		glutPostRedisplay();
-	
-		//Time total animation for Debugging
-		stopwatch += msecsPerFrame;
-
-		//Recall timer for next frame
-		glutTimerFunc(msecsPerFrame, animate, 0);
-	}
-	else
-	{
-		//cout << "Stopwatch Camera = " << (stopwatch - msecsPerFrame * 2) / 1000 << "\n"; // Display final time not counting first and last frame
-		
-		// Must be here to setup next animation call
-		isFirstEntry = true;
-
-		glutPostRedisplay();
-	}
-}
-/*-----------------------------------------------*/
-static void drawInterpolants()
-{
-	/* PURPOSE:		Positions and rotates Interpolated dominos in spline
-	*/
-
-	float totalTime = 1.0;
-	float timeSegment = totalTime / (g_numOfInterpolantDominos + 1);
-	float currentTime = timeSegment;
-	int dominoIndex = g_numOfControlPoints;
-	int startIndex = dominoIndex;
-
-	// Do once for each of control points interpolated between
-	for (int i = 1; i < g_numOfControlPoints - 3; i++)
-	{
-		//cout << "i = " << i << endl;
-		while (currentTime < totalTime)
-		{
-			// Find and set position
-			Cvec3 position = catmullRomSpline::interpolate(g_splineArray, i, currentTime);
-			g_rigidBodies[dominoIndex].rtf.setTranslation(position);
-			g_rigidBodies[dominoIndex].isChildVisible = true;
-
-			// Set Rotation based on first derivative
-			Cvec3 screen = Cvec3(0,0,1);
-			Cvec3 derivedVector = catmullRomSpline::firstDerivative();
-			
-			//cout << "Vector        = <" << vector[0] << ", " << vector[1] << ", " << vector[2] << ">" << endl;
-			//cout << "DerivedVector Before = <" << derivedVector[0] << ", " << derivedVector[1] << ", " << derivedVector[2] << ">" << endl;
-			//cout << "beforeAngle = " << angle << endl;
-
-			//cout << "DerivedVector = <" << derivedVector[0] << ", " << derivedVector[1] << ", " << derivedVector[2] << ">" << endl;
-
-			float angle = angleBetween(derivedVector, screen);
-
-			//cout << "angle = " << angle << endl;
-
-			//if (derivedVector[0] < 0)
-			//	angle *= -1;
-
-			//cout << "afterAngle = " << angle << endl;
-
-			g_rigidBodies[dominoIndex].rtf.setRotation(Quat().makeYRotation(angle));
-			
-			//cout << "derivedVector= <" << derivedVector[0]  << ", " << derivedVector[1] << ", " << derivedVector[2] << ">" << endl;
-
-			dominoIndex++;
-			currentTime += timeSegment;
-		}
-		currentTime = timeSegment;
-	}
-}
-/*-----------------------------------------------*/
 static void mouse(const int button, const int state, const int x, const int y) {
   g_mouseClickX = x;
   g_mouseClickY = g_windowHeight - y - 1;  // conversion from GLUT window-coordinate-system to OpenGL window-coordinate-system
@@ -892,7 +739,7 @@ static void keyboard(const unsigned char key, const int x, const int y)
 				cout << " ============== H E L P ==============\n\n"
 				<< "h\t\thelp menu\n"
 				<< "s\t\tsave screenshot\n"
-				<< "f\t\tToggle flat shading on/off.\n"
+				<< "m\t\tToggle flat shading on/off.\n"
 				<< "o\t\tCycle object to edit\n"
 				<< "v\t\tCycle view\n"
 				<< "drag left mouse to rotate\n" << endl;
@@ -901,83 +748,60 @@ static void keyboard(const unsigned char key, const int x, const int y)
 				glFlush();
 				writePpmScreenshot(g_windowWidth, g_windowHeight, "out.ppm");
 				break;
-			case 'f':
+			case 'm':
 				g_activeShader ^= 1;
 				break;
 	  }
-
-		if (key == '1')
-		{
-			g_framesPerSecond = 32;
-		}
-		else if (key == '2')
-		{
-			g_framesPerSecond = 16;
-		}
-		else if (key == '3')
-		{
-			g_framesPerSecond = 8;
-		}
-		else if (key == '4')
-		{
-			g_framesPerSecond = 4;
-		}
-		else if (key == '5')
-		{
-			g_framesPerSecond = 2;
-		}
-		else if (key == '6')
-		{
-			g_framesPerSecond = 1;
-		}
-		else if (key == '7')
-		{
-			g_framesPerSecond = 0.5;
-		}
-		else if (key == '8')
-		{
-			g_framesPerSecond = 0.25;
-		}
-		else if (key == '9')
-		{
-			g_framesPerSecond = 0.125;
-		}
 	
-		if (key == 'i')
+		if (key == 'a')
 		{
-			drawInterpolants();
+			mode = ASPECT;
 		}
-		else if (key == 'a')
+		else if (key == 'f')
 		{
-			// if hitting the a key draws the interpolants, then starting
-			//with the first domino, topples the dominoes over as in a
-			//domino effect demonstration.
+			mode = FOV;
 		}
-		// TODO Remove at the End
+		else if (key == 'z')
+		{
+			mode = ZAXIS;
+		}
+		else if (key == 'b')
+		{
+			// Rotate Gratutious Triangle 180 degrees
+		}
 		else if (key == '-')
 		{
-			float max = 20;
-			Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+			if (mode == ASPECT)
+			{
 
-			g_eyeRbt.setTranslation(cameraTrans + Cvec3(0,0,1));
-		
-			if (cameraTrans[2] >= max)
-				g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], max));
+			}
+			else if (mode == FOV)
+			{
 
-			lookAtOrigin();
+			}
+			else if (mode == ZAXIS)
+			{
+				// Move camera along the positive z-axis
+				Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+				g_eyeRbt.setTranslation(cameraTrans + Cvec3(0,0,1));
+			}
 		}
-		// TODO Remove at the End
 		else if (key == '=')
 		{
-			float min = 5;
-			Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+			if (mode == ASPECT)
+			{
 
-			g_eyeRbt.setTranslation(cameraTrans - Cvec3(0,0,1));
-	
-			if (cameraTrans[2] <= min)
-				g_eyeRbt.setTranslation(Cvec3(cameraTrans[0], cameraTrans[1], min));
+			}
+			else if (mode == FOV)
+			{
 
-			lookAtOrigin();
+			}
+			else if (mode == ZAXIS)
+			{
+				// Move camera along the negative z-axis
+				Cvec3 cameraTrans = g_eyeRbt.getTranslation();
+				g_eyeRbt.setTranslation(cameraTrans - Cvec3(0,0,1));
+			}
 		}
 	}
 
@@ -1024,14 +848,9 @@ static void initShaders() {
 static void initGeometry() 
 {
 	//Initialize Object Matrix array
-	initDominos();
+	initTrees();
 	initGround();
 
-}
-
-static void initSplines()
-{
-	g_splineArray = splineReader::parseSplineFile("spline.txt", &g_numOfControlPoints);
 }
 
 int main(int argc, char * argv[]) {
@@ -1048,7 +867,6 @@ int main(int argc, char * argv[]) {
 
 		initGLState();
 		initShaders();
-		initSplines();
 		initGeometry();
 		initCamera();
 

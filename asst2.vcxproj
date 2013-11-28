@@ -93,15 +93,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="catmullRomSpline.cpp" />
     <ClCompile Include="glsupport.cpp" />
-    <ClCompile Include="matrixCube.cpp" />
     <ClCompile Include="ppm.cpp" />
     <ClCompile Include="hw5.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arcball.h" />
-    <ClInclude Include="catmullRomSpline.h" />
     <ClInclude Include="cvec.h" />
     <ClInclude Include="geometrymaker.h" />
     <ClInclude Include="glsupport.h" />
@@ -109,7 +106,6 @@
     <ClInclude Include="ppm.h" />
     <ClInclude Include="quat.h" />
     <ClInclude Include="rigtform.h" />
-    <ClInclude Include="splineReader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram1.cd" />
@@ -119,7 +115,6 @@
     <None Include="shaders\diffuse-gl3.fshader" />
     <None Include="shaders\solid-gl2.fshader" />
     <None Include="shaders\solid-gl3.fshader" />
-    <None Include="spline.txt" />
     <None Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

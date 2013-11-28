@@ -1,49 +1,24 @@
-2 bonus points: if hitting the a key draws the interpolants, then starting with the first domino, topples the dominoes over as in a domino effect demonstration.
+- Trees are cylinder trunk, deep brown, wood-like material with a sphere made from green plastic material. Red apples different material than others.
+
+- Row of 11 Trees along x-axis centered at origin. Trees rest on x-z plane.
+
+- 5 units above largest x-value tree put a light source
+
+- Camera placed  along positive z-axis so FoV is all 11 trees
+
+- Aspect ratio set so tops and bottoms of trees occupy the whole vertical direction of the drawn scene.
+
+- z is distance to nearest tree from camera. Near = (z/2) Far at (3z/2)
+
+- Hit a for aspect mode. -, + keys increase decrease
+
+- Hit f for FoV. -, + keys increase decrease
+
+- Hit z for z-axis mode. -, + keys increase decrease camera (distance to near and far constant)
+
+- Gratuitous Triangle 1/4 ass tall as tree
+
+- Hitting b causes GT to rotate 180 degrees about y-axis so back faces camera so it is culled
 
 
-*Use lookat Matrix function at the point the RigTform is converted to a Matrix.
-
-
-
-/*			
-			// Rotate the short way
-			// If both different
-			if (((derivedVector[0] < 0 && vector[0] >= 0) || (derivedVector[0] >= 0 && vector[0] < 0))
-				&& ((derivedVector[2] < 0 && vector[2] >= 0) || (derivedVector[2] >= 0 && vector[2] < 0)))
-			{	
-				angle *= -1;
-				angle += 180;
-				cout << "condition 1" << endl;
-			}
-			// If <Different, Same>
-			else if (((derivedVector[0] < 0 && vector[0] >= 0) || (derivedVector[0] >= 0 && vector[0] < 0))
-				&& ((derivedVector[2] < 0 && vector[2] < 0) || (derivedVector[2] >= 0 && vector[2] >= 0)))
-			{
-				angle *= -1;
-				//angle -= 90;
-				
-				cout << "condition 2" << endl;
-			}
-			// If <Same, (+,-)>
-			else if (((derivedVector[0] < 0 && vector[0] < 0) || (derivedVector[0] >= 0 && vector[0] >= 0))
-				&& ((derivedVector[2] >= 0 && vector[2] < 0)))
-			{
-				angle += 90;
-				cout << "condition 3" << endl;
-			}
-			// If <Same, (-,+)>
-			else if (((derivedVector[0] < 0 && vector[0] < 0) || (derivedVector[0] >= 0 && vector[0] >= 0))
-				&& ((derivedVector[2] < 0 && vector[2] >= 0)))
-			{
-				angle -= 90;
-				cout << "condition 4" << endl;
-			}
-
-			// Rotate the short way
-			if ( ( derivedVector[0] < 0 && vector[0] >= 0 ) || ( derivedVector[0] >= 0 && vector[0] < 0))
-				vector[0] *= -1;
-			else if ( ( derivedVector[1] < 0 && vector[1] >= 0 ) || ( derivedVector[1] >= 0 && vector[1] < 0))
-				vector[1] *= -1;
-			else if ( ( derivedVector[2] < 0 && vector[2] >= 0 ) || ( derivedVector[2] >= 0 && vector[2] < 0))
-				vector[2] *= -1;
-*/
+Keypresses: a,f,z,b
