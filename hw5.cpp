@@ -486,16 +486,16 @@ static void initGratuitousTriangle()
 		REMARKS:		Creates a equilaterial of length 1 colored red
 	*/
 
-	RigTForm rigTemp = RigTForm();
+	RigTForm rigTemp = RigTForm(Cvec3(0, 5 * 0.5, -1));
 	Matrix4 scaleTemp = Matrix4();
 	
 	// Make container
-	RigidBody *gratuitousTriangle = new RigidBody(RigTForm(), Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5));
+	RigidBody *gratuitousTriangle = new RigidBody(rigTemp, Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5));
 	gratuitousTriangle->isVisible = false;
 	gratuitousTriangle->name = "container";
 
 	// Make body
-	rigTemp = RigTForm(Cvec3(0, 2.5, -1));
+	rigTemp = RigTForm();
 	scaleTemp = Matrix4::makeScale(Cvec3(5, 5, 1));
 
 	RigidBody *body = new RigidBody(rigTemp, scaleTemp, NULL, initTriangles(), Cvec3(1,0,0));
@@ -817,6 +817,7 @@ static void keyboard(const unsigned char key, const int x, const int y)
 		else if (key == 'b')
 		{
 			// Rotate Gratutious Triangle 180 degrees
+			g_rigidBodies[11].rtf.setRotation(g_rigidBodies[11].rtf.getRotation() * Quat().makeYRotation(180));
 		}
 		else if (key == '-')
 		{
@@ -918,16 +919,6 @@ int main(int argc, char * argv[]) {
 		initShaders();
 		initCamera();
 		initGeometry();
-		
-
-/*		
-		//Debug stuff
-		cout << "\n";
-		Matrix4::print(g_skyRbt);
-		cout << "\n";
-*/
-
-		//glutTimerFunc(0, timer, -1);
 
 		glutMainLoop();
 		return 0;

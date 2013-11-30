@@ -236,12 +236,12 @@ void makeTriangle(VtxOutIter vtxIter, IdxOutIter idxIter)
 {
 	using namespace std;
 
-	float startY = sqrt(0.75) / 2.0;
+	float startX = sqrt(0.75) / 2.0;
 
 	Cvec3f *threePoints = new Cvec3f[3];
-	threePoints[0] = Cvec3f(0, -startY, 0); 
-	threePoints[1] = Cvec3f(0.5, startY, 0);
-	threePoints[2] = Cvec3f(-0.5, startY, 0);
+	threePoints[0] = Cvec3f(-startX, 0, 0); 
+	threePoints[1] = Cvec3f(startX, -0.5, 0);
+	threePoints[2] = Cvec3f(startX, 0.5, 0);
 	
 	for (int i = 0; i < 3; i++)
 	{

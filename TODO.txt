@@ -8,9 +8,6 @@
 
 - Aspect ratio set so tops and bottoms of trees occupy the whole vertical direction of the drawn scene.
 
-- Gratuitous Triangle 1/4 ass tall as tree
+- Gratuitous Triangle 1/4 as tall as tree
 
-- Hitting b causes GT to rotate 180 degrees about y-axis so back faces camera so it is culled
-
-
-Keypresses: a,f,z,b
+Keypresses: a,f,z,b, -, =
