@@ -8,6 +8,4 @@
 
 - Aspect ratio set so tops and bottoms of trees occupy the whole vertical direction of the drawn scene.
 
-- Gratuitous Triangle 1/4 as tall as tree
-
 Keypresses: a,f,z,b, -, =

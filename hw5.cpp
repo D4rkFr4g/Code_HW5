@@ -85,6 +85,7 @@ static bool g_mouseClickDown = false;    // is the mouse button pressed
 static bool g_mouseLClickButton, g_mouseRClickButton, g_mouseMClickButton;
 static int g_mouseClickX, g_mouseClickY; // coordinates for mouse click event
 static int g_activeShader = 0;
+static float g_treeHeight = 10;
 static const int g_numOfObjects = 12; //Number of objects to be drawn
 static bool isKeyboardActive = true;
 static int mode = ASPECT;
@@ -480,13 +481,29 @@ static Geometry* initSpheres()
 	return new Geometry(&vtx[0], &idx[0], vbLen, ibLen);
 }
 /*-----------------------------------------------*/
+static Geometry* initCylinders()
+{
+	float radius = 1;
+	float height = 1;
+	int slices = 20;
+	int ibLen, vbLen;
+	getCylinderVbIbLen(slices, vbLen, ibLen);
+
+	// Temporary storage for cube geometry
+	vector<VertexPN> vtx(vbLen);
+	vector<unsigned short> idx(ibLen);
+
+	makeCylinder(slices, radius, height, vtx.begin(), idx.begin());
+	return new Geometry(&vtx[0], &idx[0], vbLen, ibLen);
+}
+/*-----------------------------------------------*/
 static void initGratuitousTriangle()
 {	
 	/* PURPOSE:		Creates a Gratuitous Triangle object  
 		REMARKS:		Creates a equilaterial of length 1 colored red
 	*/
 
-	RigTForm rigTemp = RigTForm(Cvec3(0, 5 * 0.5, -1));
+	RigTForm rigTemp = RigTForm(Cvec3(0, (g_treeHeight * 0.25) * 0.5, 1));
 	Matrix4 scaleTemp = Matrix4();
 	
 	// Make container
@@ -496,7 +513,7 @@ static void initGratuitousTriangle()
 
 	// Make body
 	rigTemp = RigTForm();
-	scaleTemp = Matrix4::makeScale(Cvec3(5, 5, 1));
+	scaleTemp = Matrix4::makeScale(Cvec3(5, (g_treeHeight * 0.25), 1)) * inv(gratuitousTriangle->scale);
 
 	RigidBody *body = new RigidBody(rigTemp, scaleTemp, NULL, initTriangles(), Cvec3(1,0,0));
 	body->name = "body";
@@ -513,21 +530,19 @@ static void initGratuitousTriangle()
 /*-----------------------------------------------*/
 static void initTrees()
 {
-	/* PURPOSE:		Initializes each domino to it's position, scale, and rotation  
+	/* PURPOSE:		Initializes each tree to it's position, scale, and rotation  
 	*/
-/*	int extraDominos = (g_numOfControlPoints - 4) * g_numOfInterpolantDominos;
-	int numOfDominos = g_numOfControlPoints + extraDominos;
-	g_numOfObjects = numOfDominos;	// Could cause an issue if a non domino object is added
-	g_rigidBodies = new RigidBody[numOfDominos];
 
-	// Build Dominos
-	for (int i = 0; i < numOfDominos; i++)
+	int numOfTrees = 11;
+
+	// Build Trees
+	for (int i = 0; i < numOfTrees; i++)
 	{
-		RigidBody *domino;
-		domino = makeDomino();
-		g_rigidBodies[i] = *domino;
+		RigidBody *tree;
+		tree = makeTree();
+		g_rigidBodies[i] = *tree;
 	}
-
+/*
 	// Set Domino Positions
 	for (int i = 0; i < numOfDominos; i++)
 	{
@@ -576,63 +591,76 @@ static void initTrees()
 /*-----------------------------------------------*/
 static RigidBody* makeTree()
 {
-	/* PURPOSE:		Creates a domino object  
-		RETURNS:    RigidBody* that points to the domino
-		REMARKS:		Creates a snake-eyes domino only
+	/* PURPOSE:		Creates a tree object  
+		RETURNS:    RigidBody* that points to the tree
+		REMARKS:		Creates a 3 apple tree only
 	*/
 
-	float height = 4.0;
+	float foliageScale = 3.0;
+	float height = g_treeHeight - foliageScale;
 	float width = 1.0;
-	float thick = 0.5;
+	float thick = 1.0;
 
-	RigTForm rigTemp = RigTForm();
+	RigTForm rigTemp = RigTForm(Cvec3(0, 0, 0));
 	Matrix4 scaleTemp = Matrix4();
 	
 	// Make container
-	RigidBody *domino = new RigidBody(RigTForm(), Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5));
-	domino->isVisible = false;
-	domino->name = "container";
+	RigidBody *tree = new RigidBody(RigTForm(), Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5));
+	tree->isVisible = false;
+	tree->name = "container";
 
-	// Make body
+	// Make trunk
 	rigTemp = RigTForm(Cvec3(0, 0, 0));
 	scaleTemp = Matrix4::makeScale(Cvec3(width, height, thick));
 
-	RigidBody *body = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(0,0,0));
-	body->name = "body";
+	RigidBody *trunk = new RigidBody(rigTemp, scaleTemp, NULL, initCylinders(), Cvec3(0.543,0.270,0.074));
+	trunk->name = "trunk";
 
-	// Make bar
-	rigTemp = RigTForm(Cvec3(0, 0, thick * .5));
-	scaleTemp = Matrix4::makeScale(Cvec3(0.75, 0.05, 0.005));
+	// Make foliage
+	rigTemp = RigTForm(Cvec3(0, height / 2.0, 0));
+	scaleTemp = Matrix4::makeScale(Cvec3(foliageScale, foliageScale, foliageScale)) * inv(trunk->scale);
 
-	RigidBody *bar = new RigidBody(rigTemp, scaleTemp, NULL, initCubes(), Cvec3(1,1,1));
-	bar->name = "bar";
+	RigidBody *foliage = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(0,1,0));
+	foliage->name = "foliage";
+	//foliage->isVisible = false;
 
-	// Make Dots
-	rigTemp = RigTForm(Cvec3(0, height * 0.25, thick * .51));
-	scaleTemp = Matrix4::makeScale(Cvec3(.1, .1, .005)) * inv(body->scale);
+	// Make Apples
+	rigTemp = RigTForm(Cvec3(0, foliageScale / 2.0, foliageScale - .5));
+	scaleTemp = Matrix4::makeScale(Cvec3(0.1, 0.1, 0.1));
 
-	RigidBody *dot0 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,1,1));
-	dot0->name = "dot0";
+	RigidBody *apple0 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0));
+	apple0->name = "apple0";
 
-	rigTemp = RigTForm(Cvec3(0, -height * 0.25, thick * .51));
-	scaleTemp = Matrix4::makeScale(Cvec3(.1, .1, .005)) * inv(body->scale);
+	rigTemp = RigTForm(Cvec3(-foliageScale / 2.0, 0, foliageScale - .3));
 
-	RigidBody *dot1 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,1,1));
-	dot1->name = "dot1";
+	RigidBody *apple1 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0));
+	apple1->name = "apple1";
+
+	rigTemp = RigTForm(Cvec3(foliageScale / 2.0, 0, foliageScale - .3));
+
+	RigidBody *apple2 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0));
+	apple2->name = "apple2";
 
 	//Setup Children
-	domino->numOfChildren = 1;
-	body->numOfChildren = 3;
+	tree->numOfChildren = 1;
+	trunk->numOfChildren = 1;
+	foliage->numOfChildren = 3;
 
-	domino->children = new RigidBody*[domino->numOfChildren];
-	domino->children[0] = body;
+	tree->children = new RigidBody*[tree->numOfChildren];
+	tree->children[0] = trunk;
 
-	body->children = new RigidBody*[body->numOfChildren];
-	body->children[0] = bar;
-	body->children[1] = dot0;
-	body->children[2] = dot1;
+	trunk->children = new RigidBody*[trunk->numOfChildren];
+	trunk->children[0] = foliage;
+	
+	foliage->children = new RigidBody*[foliage->numOfChildren];
+	foliage->children[0] = apple0;
+	foliage->children[1] = apple1;
+	foliage->children[2] = apple2;
 
-	return domino;
+	// Move tree to final position
+	tree->rtf.setTranslation(Cvec3(0, height/2.0, 0));
+
+	return tree;
 }
 /*-----------------------------------------------*/
 // takes a projection matrix and send to the the shaders

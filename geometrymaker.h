@@ -125,9 +125,8 @@ inline void getSphereVbIbLen(int slices, int stacks, int& vbLen, int& ibLen) {
 
 inline void getCylinderVbIbLen(int slices, int& vbLen, int& ibLen) {
   assert(slices > 1);
-  //assert(stacks >= 2);
-  vbLen = (slices + 1) * (1 + 1);
-  ibLen = slices * 1 * 6;
+  vbLen = slices * 2;
+  ibLen = slices * 6; 
 }
 
 template<typename VtxOutIter, typename IdxOutIter>
@@ -183,52 +182,69 @@ void makeSphere(float radius, int slices, int stacks, VtxOutIter vtxIter, IdxOut
 }
 
 template<typename VtxOutIter, typename IdxOutIter>
-void makeCylinder(float radius, int slices, float height, VtxOutIter vtxIter, IdxOutIter idxIter) 
+void makeCylinder(int slices, float radius, float height, VtxOutIter vtxIter, IdxOutIter idxIter) 
 {
+	/* PURPOSE:		Fills a vertex and index buffer to make a cylinder 
+		RECEIVES:   slices - number of points around the circle
+						radius - radius of cylinder
+						height - Height of cylinder
+						vtxIter - VertexBuffer Iterator
+						idxIter - indexBuffer Iterator
+		REMARKS:    Creates a hollow cylinder 
+	*/
   using namespace std;
   assert(slices > 1);
-  //assert(stacks >= 2);
-  int stacks = 1;
+  int stacks = 2;  
 
   float angle = 2 * CS175_PI / slices;
   float halfHeight = height / 2;
 
-  //Keep
-  for (int i = 0; i < slices + 1; ++i) {
-    for (int j = 0; j < 2; ++j) {
-      float x = cos(i * angle);
-		float y = sin(i * angle);
+  for (int i = 0; i < slices; ++i) 
+  {
+    for (int j = 0; j < stacks; ++j) 
+	 { 
+		float x = cos(i * angle);
+		float z = sin(i * angle);
       
 		int flip = -1;
-		if (j = 1)
+		if (j == 0)
 			flip *= -1;
 
-		float z = halfHeight * flip;
+		float y = halfHeight * flip;
 
       Cvec3f n(x, y, z);
       Cvec3f t(-x, y, 0);
       Cvec3f b = cross(n, t);
 
       *vtxIter = GenericVertex(
-        x * radius, y * radius, z,
+        x * radius, y, z * radius,
         x, y, z,
         1.0/slices*i, 1.0/2*j,
         t[0], t[1], t[2],
         b[0], b[1], b[2]);
       ++vtxIter;
-
-      if (i < slices && j < stacks ) {
-        *idxIter = (stacks+1) * i + j;
-        *++idxIter = (stacks+1) * i + j + 1;
-        *++idxIter = (stacks+1) * (i + 1) + j + 1;
-
-        *++idxIter = (stacks+1) * i + j;
-        *++idxIter = (stacks+1) * (i + 1) + j + 1;
-        *++idxIter = (stacks+1) * (i + 1) + j;
-        ++idxIter;
-      }
     }
   }
+
+  // Load the index buffer
+	int k = 0;
+	for (int i = 0; i < slices; i++)
+	{
+		int a = k % (slices * 2);
+		int b = (k + 1) % (slices * 2);
+		int c = (k + 2) % (slices * 2);
+		int d = (k + 3) % (slices * 2);
+
+		*idxIter = a;
+		*++idxIter = c;
+		*++idxIter = b;
+
+		*++idxIter = b;
+		*++idxIter = c;
+		*++idxIter = d;
+		++idxIter;
+		k += 2;
+	}
 }
 
 template<typename VtxOutIter, typename IdxOutIter>
