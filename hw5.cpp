@@ -38,8 +38,6 @@
 #include "ppm.h"
 #include "glsupport.h"
 #include "rigtform.h"
-#include "splineReader.h"
-#include "catmullRomSpline.h"
 
 #define M_PI 3.1415926535897932384626433832795;
 enum {ASPECT, FOV, ZAXIS};
@@ -87,7 +85,7 @@ static bool g_mouseClickDown = false;    // is the mouse button pressed
 static bool g_mouseLClickButton, g_mouseRClickButton, g_mouseMClickButton;
 static int g_mouseClickX, g_mouseClickY; // coordinates for mouse click event
 static int g_activeShader = 0;
-static int g_numOfObjects = 0; //Number of objects to be drawn
+static const int g_numOfObjects = 12; //Number of objects to be drawn
 static bool isKeyboardActive = true;
 static int mode = ASPECT;
 
@@ -340,14 +338,14 @@ struct RigidBody
 };
 /*-----------------------------------------------*/
 // Vertex buffer and index buffer associated with the ground and cube geometry
-static shared_ptr<Geometry> g_ground, g_cube, g_sphere;
+static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_triangle;
 
 // --------- Scene
 
 static const Cvec3 g_light1(2.0, 3.0, 14.0), g_light2(-2, -3.0, -5.0);  // define two lights positions in world space
 static RigTForm g_skyRbt = RigTForm(Cvec3(0.0, 3, 10.0)); // Default camera
 static RigTForm g_eyeRbt = g_skyRbt; //Set the g_eyeRbt frame to be default as the sky frame
-static RigidBody* g_rigidBodies;//[g_numOfObjects]; // Array that holds each Rigid Body Object
+static RigidBody g_rigidBodies[g_numOfObjects]; // Array that holds each Rigid Body Object
 
 ///////////////// END OF G L O B A L S //////////////////////////////////////////////////
 /*-----------------------------------------------*/
@@ -453,6 +451,19 @@ static Geometry* initCubes()
   return new Geometry(&vtx[0], &idx[0], vbLen, ibLen);
 }
 /*-----------------------------------------------*/
+static Geometry* initTriangles() 
+{
+  int ibLen = 3;
+  int vbLen = 3;
+
+  // Temporary storage for cube geometry
+  vector<VertexPN> vtx(vbLen);
+  vector<unsigned short> idx(ibLen);
+
+  makeTriangle(vtx.begin(), idx.begin());
+  return new Geometry(&vtx[0], &idx[0], vbLen, ibLen);
+}
+/*-----------------------------------------------*/
 static Geometry* initSpheres() 
 {
 	int slices = 20;
@@ -468,7 +479,38 @@ static Geometry* initSpheres()
 	makeSphere(radius, slices, stacks, vtx.begin(), idx.begin());
 	return new Geometry(&vtx[0], &idx[0], vbLen, ibLen);
 }
+/*-----------------------------------------------*/
+static void initGratuitousTriangle()
+{	
+	/* PURPOSE:		Creates a Gratuitous Triangle object  
+		REMARKS:		Creates a equilaterial of length 1 colored red
+	*/
 
+	RigTForm rigTemp = RigTForm();
+	Matrix4 scaleTemp = Matrix4();
+	
+	// Make container
+	RigidBody *gratuitousTriangle = new RigidBody(RigTForm(), Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5));
+	gratuitousTriangle->isVisible = false;
+	gratuitousTriangle->name = "container";
+
+	// Make body
+	rigTemp = RigTForm(Cvec3(0, 2.5, -1));
+	scaleTemp = Matrix4::makeScale(Cvec3(5, 5, 1));
+
+	RigidBody *body = new RigidBody(rigTemp, scaleTemp, NULL, initTriangles(), Cvec3(1,0,0));
+	body->name = "body";
+
+	//Setup Children
+	gratuitousTriangle->numOfChildren = 1;
+
+	gratuitousTriangle->children = new RigidBody*[gratuitousTriangle->numOfChildren];
+	gratuitousTriangle->children[0] = body;
+
+	g_rigidBodies[11] = *gratuitousTriangle;
+	glutPostRedisplay();
+}
+/*-----------------------------------------------*/
 static void initTrees()
 {
 	/* PURPOSE:		Initializes each domino to it's position, scale, and rotation  
@@ -857,7 +899,7 @@ static void initGeometry()
 	//Initialize Object Matrix array
 	initTrees();
 	initGround();
-
+	initGratuitousTriangle();
 }
 
 int main(int argc, char * argv[]) {

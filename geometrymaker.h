@@ -183,7 +183,8 @@ void makeSphere(float radius, int slices, int stacks, VtxOutIter vtxIter, IdxOut
 }
 
 template<typename VtxOutIter, typename IdxOutIter>
-void makeCylinder(float radius, int slices, float height, VtxOutIter vtxIter, IdxOutIter idxIter) {
+void makeCylinder(float radius, int slices, float height, VtxOutIter vtxIter, IdxOutIter idxIter) 
+{
   using namespace std;
   assert(slices > 1);
   //assert(stacks >= 2);
@@ -228,6 +229,42 @@ void makeCylinder(float radius, int slices, float height, VtxOutIter vtxIter, Id
       }
     }
   }
+}
+
+template<typename VtxOutIter, typename IdxOutIter>
+void makeTriangle(VtxOutIter vtxIter, IdxOutIter idxIter) 
+{
+	using namespace std;
+
+	float startY = sqrt(0.75) / 2.0;
+
+	Cvec3f *threePoints = new Cvec3f[3];
+	threePoints[0] = Cvec3f(0, -startY, 0); 
+	threePoints[1] = Cvec3f(0.5, startY, 0);
+	threePoints[2] = Cvec3f(-0.5, startY, 0);
+	
+	for (int i = 0; i < 3; i++)
+	{
+		float x = threePoints[i][0];
+		float y = threePoints[i][1];
+		float z = threePoints[i][2];
+
+		Cvec3f n(x, y, z);
+		Cvec3f t(-x, y, 0);
+		Cvec3f b = cross(n, t);
+
+		*vtxIter = GenericVertex(
+			x, y, z,
+			n[0], n[1], n[2],
+			1.0/i, 1.0/2*i,
+			t[0], t[1], t[2],
+			b[0], b[1], b[2]);
+		++vtxIter;
+	}
+	
+	idxIter[0] = 0;
+	idxIter[1] = 1;
+	idxIter[2] = 2;
 }
 
 

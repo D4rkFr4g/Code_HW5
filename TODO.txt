@@ -8,10 +8,6 @@
 
 - Aspect ratio set so tops and bottoms of trees occupy the whole vertical direction of the drawn scene.
 
-- Hit a for aspect mode. -, + keys increase decrease
-
-- Hit f for FoV. -, + keys increase decrease
-
 - Gratuitous Triangle 1/4 ass tall as tree
 
 - Hitting b causes GT to rotate 180 degrees about y-axis so back faces camera so it is culled
