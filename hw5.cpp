@@ -131,12 +131,14 @@ struct ShaderState {
 
 };
 
-static const int g_numShaders = 2;
+static const int g_numShaders = 4;
 static const char * const g_shaderFiles[g_numShaders][2] = {
-  {"./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader"},
-  {"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"}
+	{"./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader"},
+	{"./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader"},
+	{"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"},
+	{"./shaders/basic-gl3.vshader", "./shaders/anisotropy-gl3.fshader"}
 };
-static const char * const g_shaderFilesGl2[g_numShaders][2] = {
+static const char * const g_shaderFilesGl2[g_numShaders - 2][2] = {
   {"./shaders/basic-gl2.vshader", "./shaders/diffuse-gl2.fshader"},
   {"./shaders/basic-gl2.vshader", "./shaders/solid-gl2.fshader"}
 };
