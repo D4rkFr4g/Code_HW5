@@ -41,6 +41,7 @@
 
 #define M_PI 3.1415926535897932384626433832795;
 enum {ASPECT, FOV, ZAXIS};
+enum {DIFFUSE, SOLID, SHINY, ANISOTROPY};
 
 
 using namespace std;      // for string, vector, iostream, and other standard C++ stuff
@@ -67,7 +68,9 @@ static const bool g_Gl2Compatible = false;
 
 // Forward Declarations
 struct RigidBody;
+struct ShaderState;
 static RigidBody* makeTree();
+static const ShaderState& setupShader(int material);
 
 static const float g_frustMinFov = 64.5;  // A minimal of 60 degree field of view
 static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by updateFrustFovY)
@@ -133,8 +136,8 @@ struct ShaderState {
 
 static const int g_numShaders = 4;
 static const char * const g_shaderFiles[g_numShaders][2] = {
-	{"./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader"},
 	{"./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader"},
+	{"./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader"},
 	{"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"},
 	{"./shaders/basic-gl3.vshader", "./shaders/anisotropy-gl3.fshader"}
 };
@@ -240,6 +243,7 @@ struct RigidBody
 	bool isVisible;
 	bool isChildVisible;
 	string name;
+	int material;
 
 	RigidBody()
 	{
@@ -251,6 +255,7 @@ struct RigidBody
 		geom = NULL;
 		isVisible = true;
 		isChildVisible = true;
+		material = SOLID;
 	}
 
 	~RigidBody()
@@ -261,7 +266,7 @@ struct RigidBody
 		delete geom;
 	}
 
-	RigidBody(RigTForm rtf_, Matrix4 scale_, RigidBody **children_, Geometry *geom_, Cvec3 color_)
+	RigidBody(RigTForm rtf_, Matrix4 scale_, RigidBody **children_, Geometry *geom_, Cvec3 color_, int material_)
 	{
 		/* PURPOSE:		 
 			RECEIVES:	 
@@ -276,16 +281,18 @@ struct RigidBody
 		geom = geom_;
 		color = color_;
 		isVisible = true;
+		material = material_;
 	}
 
-	void drawRigidBody(const ShaderState& curSS, RigTForm invEyeRbt)
+	void drawRigidBody(RigTForm invEyeRbt)
 	{
 		RigTForm respectFrame = invEyeRbt;
-		draw(curSS, respectFrame, Matrix4());
+		draw(respectFrame, Matrix4());
 	}
 
-	void draw(const ShaderState& curSS, RigTForm respectFrame_, Matrix4 respectScale_)
+	void draw(RigTForm respectFrame_, Matrix4 respectScale_)
 	{
+		const ShaderState& curSS = setupShader(material);
 		safe_glUniform3f(curSS.h_uColor, color[0], color[1], color[2]);
 			
 		//Draw parent
@@ -319,14 +326,15 @@ struct RigidBody
 		{
 			for (int i = 0; i < numOfChildren; i++)
 			{
-				children[i]->draw(curSS, respectFrame, respectScale);
+				children[i]->draw(respectFrame, respectScale);
 			}
 		}
 		
 	}
 
-	void draw(const ShaderState& curSS, Matrix4 respectFrame_)
+	void draw(Matrix4 respectFrame_)
 	{
+		const ShaderState& curSS = setupShader(material);
 		safe_glUniform3f(curSS.h_uColor, color[0], color[1], color[2]);
 			
 		//Draw parent
@@ -343,7 +351,7 @@ struct RigidBody
 		//Draw Children
 		for (int i = 0; i < numOfChildren; i++)
 		{
-			children[i]->draw(curSS, respectFrame);
+			children[i]->draw(respectFrame);
 		}
 	}
 };
@@ -518,7 +526,7 @@ static void initGratuitousTriangle()
 	Matrix4 scaleTemp = Matrix4();
 	
 	// Make container
-	RigidBody *gratuitousTriangle = new RigidBody(rigTemp, Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5));
+	RigidBody *gratuitousTriangle = new RigidBody(rigTemp, Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5), DIFFUSE);
 	gratuitousTriangle->isVisible = false;
 	gratuitousTriangle->name = "container";
 
@@ -526,7 +534,7 @@ static void initGratuitousTriangle()
 	rigTemp = RigTForm();
 	scaleTemp = Matrix4::makeScale(Cvec3(5, (g_treeHeight * 0.25), 1)) * inv(gratuitousTriangle->scale);
 
-	RigidBody *body = new RigidBody(rigTemp, scaleTemp, NULL, initTriangles(), Cvec3(1,0,0));
+	RigidBody *body = new RigidBody(rigTemp, scaleTemp, NULL, initTriangles(), Cvec3(1,0,0), DIFFUSE);
 	body->name = "body";
 
 	//Setup Children
@@ -586,7 +594,7 @@ static RigidBody* makeTree()
 	Matrix4 scaleTemp = Matrix4();
 	
 	// Make container
-	RigidBody *tree = new RigidBody(RigTForm(), Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5));
+	RigidBody *tree = new RigidBody(RigTForm(), Matrix4(), NULL, initCubes(), Cvec3(0.5, 0.5, 0.5), DIFFUSE);
 	tree->isVisible = false;
 	tree->name = "container";
 
@@ -594,14 +602,14 @@ static RigidBody* makeTree()
 	rigTemp = RigTForm(Cvec3(0, 0, 0));
 	scaleTemp = Matrix4::makeScale(Cvec3(width, height, thick));
 
-	RigidBody *trunk = new RigidBody(rigTemp, scaleTemp, NULL, initCylinders(), Cvec3(0.543,0.270,0.074));
+	RigidBody *trunk = new RigidBody(rigTemp, scaleTemp, NULL, initCylinders(), Cvec3(0.543,0.270,0.074), DIFFUSE);
 	trunk->name = "trunk";
 
 	// Make foliage
 	rigTemp = RigTForm(Cvec3(0, height / 2.0, 0));
 	scaleTemp = Matrix4::makeScale(Cvec3(foliageScale, foliageScale, foliageScale)) * inv(trunk->scale);
 
-	RigidBody *foliage = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(0,1,0));
+	RigidBody *foliage = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(0,1,0), SHINY);
 	foliage->name = "foliage";
 	//foliage->isVisible = false;
 
@@ -609,17 +617,17 @@ static RigidBody* makeTree()
 	rigTemp = RigTForm(Cvec3(0, foliageScale / 2.0, foliageScale - .5));
 	scaleTemp = Matrix4::makeScale(Cvec3(0.1, 0.1, 0.1));
 
-	RigidBody *apple0 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0));
+	RigidBody *apple0 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0), ANISOTROPY);
 	apple0->name = "apple0";
 
 	rigTemp = RigTForm(Cvec3(-foliageScale / 2.0, 0, foliageScale - .3));
 
-	RigidBody *apple1 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0));
+	RigidBody *apple1 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0), ANISOTROPY);
 	apple1->name = "apple1";
 
 	rigTemp = RigTForm(Cvec3(foliageScale / 2.0, 0, foliageScale - .3));
 
-	RigidBody *apple2 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0));
+	RigidBody *apple2 = new RigidBody(rigTemp, scaleTemp, NULL, initSpheres(), Cvec3(1,0,0), ANISOTROPY);
 	apple2->name = "apple2";
 
 	//Setup Children
@@ -710,7 +718,36 @@ static void drawStuff()
 
 	// Draw all Rigid body objects
 	for (int i = 0; i < g_numOfObjects; i++)
-		g_rigidBodies[i].drawRigidBody(curSS, invEyeRbt);
+	{
+		g_rigidBodies[i].drawRigidBody(invEyeRbt);
+	}
+}
+static const ShaderState& setupShader(int material)
+{
+	// Current Shader State
+	glUseProgram(g_shaderStates[material]->program);
+	const ShaderState& curSS = *g_shaderStates[material];
+
+	// Build & send proj. matrix to vshader
+	const Matrix4 projmat = makeProjectionMatrix();
+	sendProjectionMatrix(curSS, projmat);
+
+	// Use the g_eyeRbt as the eyeRbt;
+	const RigTForm eyeRbt = g_eyeRbt;
+	const RigTForm invEyeRbt = inv(eyeRbt);
+
+	const Cvec3 eyeLight1 = Cvec3(invEyeRbt * Cvec4(g_light1, 1)); // g_light1 position in eye coordinates
+	const Cvec3 eyeLight2 = Cvec3(invEyeRbt * Cvec4(g_light2, 1)); // g_light2 position in eye coordinates
+	safe_glUniform3f(curSS.h_uLight, eyeLight1[0], eyeLight1[1], eyeLight1[2]);
+	safe_glUniform3f(curSS.h_uLight2, eyeLight2[0], eyeLight2[1], eyeLight2[2]);
+
+	const RigTForm identityRbt = RigTForm();
+	Matrix4 MVM = RigTForm::makeTRmatrix(invEyeRbt * identityRbt, Matrix4());
+	Matrix4 NMVM = normalMatrix(MVM);
+
+	sendModelViewNormalMatrix(curSS, MVM, NMVM);
+
+	return curSS;
 }
 /*-----------------------------------------------*/
 static void printCamera()
@@ -916,8 +953,12 @@ static void initShaders() {
   g_shaderStates.resize(g_numShaders);
   for (int i = 0; i < g_numShaders; ++i) {
     if (g_Gl2Compatible)
-      g_shaderStates[i].reset(new ShaderState(g_shaderFilesGl2[i][0], g_shaderFilesGl2[i][1]));
-    else
+	 {
+		 g_shaderStates[0].reset(new ShaderState(g_shaderFilesGl2[0][0], g_shaderFilesGl2[0][1]));
+		 g_shaderStates[1].reset(new ShaderState(g_shaderFilesGl2[1][0], g_shaderFilesGl2[1][1]));
+      //g_shaderStates[i].reset(new ShaderState(g_shaderFilesGl2[i][0], g_shaderFilesGl2[i][1]));
+	 }
+	 else
       g_shaderStates[i].reset(new ShaderState(g_shaderFiles[i][0], g_shaderFiles[i][1]));
   }
 }

@@ -1,3 +1,1 @@
-- Trees are cylinder trunk, deep brown, wood-like material with a sphere made from green plastic material. Red apples different material than others.
-
 Keypresses: a,f,z,b, -, =

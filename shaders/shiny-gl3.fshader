@@ -17,7 +17,7 @@ void main()
 
     float specular = pow(max(0.0, dot(h, normal)), 64.0);
     float diffuse = max(0.0, dot(normal, toLight));
-    vec3 intensity = vec3(0.1, 0.1, 0.1) + uColor * diffuse
+    vec3 intensity = vec3(0.001, 0.001, 0.001) + uColor * diffuse
         + vec3(0.6, 0.6, 0.6) *specular;
 
     fragColor = vec4(intensity.x, intensity.y, intensity.z, 1.0);
