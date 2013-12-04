@@ -69,23 +69,24 @@ static const bool g_Gl2Compatible = false;
 struct RigidBody;
 static RigidBody* makeTree();
 
-static const float g_frustMinFov = 60.0;  // A minimal of 60 degree field of view
+static const float g_frustMinFov = 64.5;  // A minimal of 60 degree field of view
 static float g_frustFovY = g_frustMinFov; // FOV in y direction (updated by updateFrustFovY)
 
 static float g_frustNear = -0.1;    // near plane
 static float g_frustFar = -50.0;    // far plane
 
 static const float g_groundY = 0.0;      // y coordinate of the ground
-static const float g_groundSize = 27.0;   // half the ground length
+static const float g_groundSize = 70.0;   // half the ground length
 
 static int g_windowWidth = 512;
-static int g_windowHeight = 512;
-static double g_aspect = g_windowWidth / g_windowHeight;
+static int g_windowHeight = 256;
+static double g_aspect = 5.5;//g_windowWidth / g_windowHeight;
 static bool g_mouseClickDown = false;    // is the mouse button pressed
 static bool g_mouseLClickButton, g_mouseRClickButton, g_mouseMClickButton;
 static int g_mouseClickX, g_mouseClickY; // coordinates for mouse click event
 static int g_activeShader = 0;
-static float g_treeHeight = 10;
+static float g_treeHeight = 15;
+static float g_lastTreeX = 0;
 static const int g_numOfObjects = 12; //Number of objects to be drawn
 static bool isKeyboardActive = true;
 static int mode = ASPECT;
@@ -103,6 +104,7 @@ struct ShaderState {
   // Handles to vertex attributes
   GLint h_aPosition;
   GLint h_aNormal;
+  GLint h_aTangent;
 
   ShaderState(const char* vsfn, const char* fsfn) {
     readAndCompileShader(program, vsfn, fsfn);
@@ -120,6 +122,7 @@ struct ShaderState {
     // Retrieve handles to vertex attributes
     h_aPosition = safe_glGetAttribLocation(h, "aPosition");
     h_aNormal = safe_glGetAttribLocation(h, "aNormal");
+	 h_aTangent = safe_glGetAttribLocation(h, "aTangent");
 
     if (!g_Gl2Compatible)
       glBindFragDataLocation(h, 0, "fragColor");
@@ -131,7 +134,7 @@ struct ShaderState {
 static const int g_numShaders = 2;
 static const char * const g_shaderFiles[g_numShaders][2] = {
   {"./shaders/basic-gl3.vshader", "./shaders/diffuse-gl3.fshader"},
-  {"./shaders/basic-gl3.vshader", "./shaders/solid-gl3.fshader"}
+  {"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"}
 };
 static const char * const g_shaderFilesGl2[g_numShaders][2] = {
   {"./shaders/basic-gl2.vshader", "./shaders/diffuse-gl2.fshader"},
@@ -146,12 +149,13 @@ static vector<shared_ptr<ShaderState> > g_shaderStates; // our global shader sta
 
 // A vertex with floating point position and normal
 struct VertexPN {
-  Cvec3f p, n;
+  Cvec3f p, n, t;
 
   VertexPN() {}
   VertexPN(float x, float y, float z,
-           float nx, float ny, float nz)
-    : p(x,y,z), n(nx, ny, nz)
+           float nx, float ny, float nz,
+			  float tx, float ty, float tz)
+    : p(x,y,z), n(nx, ny, nz), t(tx, ty, tz)
   {}
 
   // Define copy constructor and assignment operator from GenericVertex so we can
@@ -163,6 +167,7 @@ struct VertexPN {
   VertexPN& operator = (const GenericVertex& v) {
     p = v.pos;
     n = v.normal;
+	 t = v.tangent;
     return *this;
   }
 };
@@ -187,11 +192,13 @@ struct Geometry {
     // Enable the attributes used by our shader
     safe_glEnableVertexAttribArray(curSS.h_aPosition);
     safe_glEnableVertexAttribArray(curSS.h_aNormal);
+	 safe_glEnableVertexAttribArray(curSS.h_aTangent);
 
     // bind vbo
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     safe_glVertexAttribPointer(curSS.h_aPosition, 3, GL_FLOAT, GL_FALSE, sizeof(VertexPN), FIELD_OFFSET(VertexPN, p));
     safe_glVertexAttribPointer(curSS.h_aNormal, 3, GL_FLOAT, GL_FALSE, sizeof(VertexPN), FIELD_OFFSET(VertexPN, n));
+	 safe_glVertexAttribPointer(curSS.h_aTangent, 3, GL_FLOAT, GL_FALSE, sizeof(VertexPN), FIELD_OFFSET(VertexPN, t));
 
     // bind ibo
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -202,6 +209,7 @@ struct Geometry {
     // Disable the attributes used by our shader
     safe_glDisableVertexAttribArray(curSS.h_aPosition);
     safe_glDisableVertexAttribArray(curSS.h_aNormal);
+	 safe_glDisableVertexAttribArray(curSS.h_aTangent);
   }
 
 	void draw(const ShaderState& curSS, Matrix4 MVM)
@@ -343,7 +351,7 @@ static shared_ptr<Geometry> g_ground, g_cube, g_sphere, g_triangle;
 
 // --------- Scene
 
-static const Cvec3 g_light1(2.0, 3.0, 14.0), g_light2(-2, -3.0, -5.0);  // define two lights positions in world space
+static Cvec3 g_light1(2.0, 3.0, 14.0), g_light2(-2000, -3000.0, -5000.0);  // define two lights positions in world space
 static RigTForm g_skyRbt = RigTForm(Cvec3(0.0, 3, 10.0)); // Default camera
 static RigTForm g_eyeRbt = g_skyRbt; //Set the g_eyeRbt frame to be default as the sky frame
 static RigidBody g_rigidBodies[g_numOfObjects]; // Array that holds each Rigid Body Object
@@ -414,11 +422,12 @@ static void lookAtOrigin()
 /*-----------------------------------------------*/
 static void initCamera()
 {
-	Cvec3 eye = Cvec3(0.0, 3.0, 10.0);
+	Cvec3 eye = Cvec3(0.0, 7.48, 13.0);
 	Cvec3 at = Cvec3(0.0, 0.0, 0.0);
 	Cvec3 up = Cvec3(0.0,1.0,0.0);
 	//g_skyRbt = lookAt(eye, at, up); // Default camera
-	g_skyRbt.setRotation(Quat().makeXRotation(lookAt(eye,up))); // TODO Change so lookat is done after conversion to Matrix
+	//g_skyRbt.setRotation(Quat().makeXRotation(lookAt(eye,up))); // TODO Change so lookat is done after conversion to Matrix
+	g_skyRbt.setTranslation(eye);
 	g_eyeRbt = g_skyRbt;
 
 	// Initialize near and far
@@ -430,10 +439,10 @@ static void initCamera()
 static void initGround() {
   // A x-z plane at y = g_groundY of dimension [-g_groundSize, g_groundSize]^2
   VertexPN vtx[4] = {
-    VertexPN(-g_groundSize, g_groundY, -g_groundSize, 0, 1, 0),
-    VertexPN(-g_groundSize, g_groundY,  g_groundSize, 0, 1, 0),
-    VertexPN( g_groundSize, g_groundY,  g_groundSize, 0, 1, 0),
-    VertexPN( g_groundSize, g_groundY, -g_groundSize, 0, 1, 0),
+    VertexPN(-g_groundSize, g_groundY, -g_groundSize, 0, 1, 0, 0, 1, 0),
+    VertexPN(-g_groundSize, g_groundY,  g_groundSize, 0, 1, 0, 0, 1, 0),
+    VertexPN( g_groundSize, g_groundY,  g_groundSize, 0, 1, 0, 0, 1, 0),
+    VertexPN( g_groundSize, g_groundY, -g_groundSize, 0, 1, 0, 0, 1, 0),
   };
   unsigned short idx[] = {0, 1, 2, 0, 2, 3};
   g_ground.reset(new Geometry(&vtx[0], &idx[0], 4, 6));
@@ -534,6 +543,7 @@ static void initTrees()
 	*/
 
 	int numOfTrees = 11;
+	float treeStart = -33;
 
 	// Build Trees
 	for (int i = 0; i < numOfTrees; i++)
@@ -542,50 +552,19 @@ static void initTrees()
 		tree = makeTree();
 		g_rigidBodies[i] = *tree;
 	}
-/*
-	// Set Domino Positions
-	for (int i = 0; i < numOfDominos; i++)
+
+	// Set Tree Positions
+	Cvec3 position = g_rigidBodies[0].rtf.getTranslation();
+	position = position + Cvec3(treeStart,0,0);
+
+	for (int i = 0; i < numOfTrees; i++)
 	{
-		Cvec3 position;
-		Quat rotation;
-
-		// Set position according to the Spline file except the extra dominos which start at the first point
-		if ( i < numOfDominos - extraDominos)
-			position = g_splineArray[i];
-		else
-			position = g_splineArray[0];
-
-		// Set color of control dominos
-		if ( i < numOfDominos - extraDominos )
-			g_rigidBodies[i].children[0]->color = Cvec3(0.05, 0.05, 0.05);
-
 		g_rigidBodies[i].rtf.setTranslation(position);
-
-		// Set Rotations
-		if ( i > 0 && i < numOfDominos - (extraDominos + 1))
-		{
-			Cvec3 screen = Cvec3(0,0,1);
-			Cvec3 vector = g_splineArray[i+1] - g_splineArray[i-1];
-			float angle = angleBetween(vector, screen);
-
-			// Rotates the short way
-			if (vector[0] < 0 && vector[2] < 0)
-				angle *= -1;
-
-			rotation = Quat().makeYRotation(angle);
-		}
-		else
-			rotation = g_rigidBodies[0].rtf.getRotation();
-		
-		g_rigidBodies[i].rtf.setRotation(rotation);
+		position = position + Cvec3(-treeStart/5.0,0,0);
 	}
 
-	// Hide the extra Dominos
-	for (int i = numOfDominos - 1; i >= numOfDominos - extraDominos; i--)
-	{
-		g_rigidBodies[i].isChildVisible = false;
-	}
-*/
+	g_lastTreeX = position[0];
+
 	glutPostRedisplay();
 }
 /*-----------------------------------------------*/
@@ -732,6 +711,19 @@ static void drawStuff()
 		g_rigidBodies[i].drawRigidBody(curSS, invEyeRbt);
 }
 /*-----------------------------------------------*/
+static void printCamera()
+{
+	/* PURPOSE:		Prints Camera Globals for debugging  
+	*/
+	cout << "Aspect = " << g_aspect << endl;
+	cout << "FoV = " << g_frustFovY << endl;
+	cout << "Zaxis = " << g_eyeRbt.getTranslation()[2] << endl;
+	cout << "Near = " << g_frustNear << endl;
+	cout << "Far = " << g_frustFar << endl;
+	cout << "Eye[1] = " << g_eyeRbt.getTranslation()[1] << endl;
+	cout << "=================" << endl;
+}
+/*-----------------------------------------------*/
 static void display() {
   glUseProgram(g_shaderStates[g_activeShader]->program);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                   // clear framebuffer color&depth
@@ -751,7 +743,7 @@ static void reshape(const int w, const int h) {
   updateFrustFovY();
   glutPostRedisplay();
 }
-
+/*-----------------------------------------------*/
 static void motion(const int x, const int y) {
 	const double dx = x - g_mouseClickX;
 	const double dy = g_windowHeight - y - 1 - g_mouseClickY;
@@ -780,7 +772,6 @@ static void motion(const int x, const int y) {
   g_mouseClickX = x;
   g_mouseClickY = g_windowHeight - y - 1;
 }
-
 /*-----------------------------------------------*/
 static void mouse(const int button, const int state, const int x, const int y) {
   g_mouseClickX = x;
@@ -852,6 +843,7 @@ static void keyboard(const unsigned char key, const int x, const int y)
 			if (mode == ASPECT)
 			{
 				g_aspect -= 0.1;
+				g_windowWidth = g_aspect * g_windowHeight;
 			}
 			else if (mode == FOV)
 			{
@@ -863,12 +855,15 @@ static void keyboard(const unsigned char key, const int x, const int y)
 				Cvec3 cameraTrans = g_eyeRbt.getTranslation();
 				g_eyeRbt.setTranslation(cameraTrans + Cvec3(0,0,1));
 			}
+
+			//printCamera();
 		}
 		else if (key == '=')
 		{
 			if (mode == ASPECT)
 			{
 				g_aspect += 0.1;
+				g_windowWidth = g_aspect * g_windowHeight;
 			}
 			else if (mode == FOV)
 			{
@@ -880,6 +875,8 @@ static void keyboard(const unsigned char key, const int x, const int y)
 				Cvec3 cameraTrans = g_eyeRbt.getTranslation();
 				g_eyeRbt.setTranslation(cameraTrans - Cvec3(0,0,1));
 			}
+
+			//printCamera();
 		}
 	}
 
@@ -912,7 +909,7 @@ static void initGLState() {
   if (!g_Gl2Compatible)
     glEnable(GL_FRAMEBUFFER_SRGB);
 }
-
+/*-----------------------------------------------*/
 static void initShaders() {
   g_shaderStates.resize(g_numShaders);
   for (int i = 0; i < g_numShaders; ++i) {
@@ -922,7 +919,7 @@ static void initShaders() {
       g_shaderStates[i].reset(new ShaderState(g_shaderFiles[i][0], g_shaderFiles[i][1]));
   }
 }
-
+/*-----------------------------------------------*/
 static void initGeometry() 
 {
 	//Initialize Object Matrix array
@@ -930,7 +927,12 @@ static void initGeometry()
 	initGround();
 	initGratuitousTriangle();
 }
-
+/*-----------------------------------------------*/
+static void initLights()
+{
+	g_light1 = Cvec3(g_lastTreeX, g_treeHeight + 5.0, 0);
+}
+/*-----------------------------------------------*/
 int main(int argc, char * argv[]) {
   try {
 		initGlutState(argc,argv);
@@ -947,6 +949,7 @@ int main(int argc, char * argv[]) {
 		initShaders();
 		initCamera();
 		initGeometry();
+		initLights();
 
 		glutMainLoop();
 		return 0;

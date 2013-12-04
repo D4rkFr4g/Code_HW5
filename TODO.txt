@@ -1,11 +1,3 @@
 - Trees are cylinder trunk, deep brown, wood-like material with a sphere made from green plastic material. Red apples different material than others.
 
-- Row of 11 Trees along x-axis centered at origin. Trees rest on x-z plane.
-
-- 5 units above largest x-value tree put a light source
-
-- Camera placed  along positive z-axis so FoV is all 11 trees
-
-- Aspect ratio set so tops and bottoms of trees occupy the whole vertical direction of the drawn scene.
-
 Keypresses: a,f,z,b, -, =
