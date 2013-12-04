@@ -109,11 +109,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram1.cd" />
+    <None Include="shaders\anisotropy-gl2.fshader" />
     <None Include="shaders\anisotropy-gl3.fshader" />
     <None Include="shaders\basic-gl2.vshader" />
     <None Include="shaders\basic-gl3.vshader" />
     <None Include="shaders\diffuse-gl2.fshader" />
     <None Include="shaders\diffuse-gl3.fshader" />
+    <None Include="shaders\shiny-gl2.fshader" />
     <None Include="shaders\shiny-gl3.fshader" />
     <None Include="shaders\solid-gl2.fshader" />
     <None Include="shaders\solid-gl3.fshader" />

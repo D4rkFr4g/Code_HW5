@@ -10,7 +10,7 @@
 * File:            hw5.cpp 
 * Purpose:         To experiment with projective transformations and with textures
 * Start date:      11/27/13 
-* Programmer:      Zane Melcho 
+* Programmer:      Zane Melcho
 * 
 ****************************************************** 
 */
@@ -141,9 +141,11 @@ static const char * const g_shaderFiles[g_numShaders][2] = {
 	{"./shaders/basic-gl3.vshader", "./shaders/shiny-gl3.fshader"},
 	{"./shaders/basic-gl3.vshader", "./shaders/anisotropy-gl3.fshader"}
 };
-static const char * const g_shaderFilesGl2[g_numShaders - 2][2] = {
+static const char * const g_shaderFilesGl2[g_numShaders][2] = {
   {"./shaders/basic-gl2.vshader", "./shaders/diffuse-gl2.fshader"},
-  {"./shaders/basic-gl2.vshader", "./shaders/solid-gl2.fshader"}
+  {"./shaders/basic-gl2.vshader", "./shaders/solid-gl2.fshader"},
+	{"./shaders/basic-gl2.vshader", "./shaders/shiny-gl2.fshader"},
+	{"./shaders/basic-gl2.vshader", "./shaders/anisotropy-gl2.fshader"}
 };
 static vector<shared_ptr<ShaderState> > g_shaderStates; // our global shader states
 
@@ -294,26 +296,11 @@ struct RigidBody
 	{
 		const ShaderState& curSS = setupShader(material);
 		safe_glUniform3f(curSS.h_uColor, color[0], color[1], color[2]);
-			
-		//Draw parent
-		this;
 	
-		//scale correct but not translated correctly; moving one object scale moves the rest;
+		// Draw Parent
 		RigTForm respectFrame = respectFrame_ * rtf;
 		Matrix4 respectScale = respectScale_ * scale;
-
-		//Matrix4 MVM = RigTForm::makeTRmatrix(respectFrame) * scale;
-
 		Matrix4 MVM = RigTForm::makeTRmatrix(respectFrame, respectScale);
-		
-		/*/
-		//Positioning doesn't change after scales; Moving one object doesn't translate children during setup
-		RigTForm respectFrame = respectFrame_ * rtf;
-		Matrix4 respectScale = respectScale_ * scale;
-		Matrix4 temp1 = RigTForm::makeTRmatrix(respectFrame_) * respectScale_;
-		Matrix4 temp2 = RigTForm::makeTRmatrix(rtf) * scale;
-		Matrix4 MVM = temp1 * temp2;
-		*/
 
 		if (isVisible)
 		{
@@ -339,7 +326,6 @@ struct RigidBody
 			
 		//Draw parent
 		Matrix4 respectFrame = respectFrame_ * RigTForm::makeTRmatrix(rtf, scale);
-		//Matrix4 respectFrame = RigTForm::makeTRmatrix(rtf, scale) * respectFrame_;
 		Matrix4 MVM = respectFrame;
 
 		if (isVisible)
@@ -722,8 +708,14 @@ static void drawStuff()
 		g_rigidBodies[i].drawRigidBody(invEyeRbt);
 	}
 }
+/*-----------------------------------------------*/
 static const ShaderState& setupShader(int material)
 {
+	/* PURPOSE:		Setups Shader based on material 
+		RECEIVES:   material - enum value of shader to be used 
+		RETURNS:    curSS - ShaderState to be used to draw object 
+	*/
+
 	// Current Shader State
 	glUseProgram(g_shaderStates[material]->program);
 	const ShaderState& curSS = *g_shaderStates[material];
@@ -954,9 +946,7 @@ static void initShaders() {
   for (int i = 0; i < g_numShaders; ++i) {
     if (g_Gl2Compatible)
 	 {
-		 g_shaderStates[0].reset(new ShaderState(g_shaderFilesGl2[0][0], g_shaderFilesGl2[0][1]));
-		 g_shaderStates[1].reset(new ShaderState(g_shaderFilesGl2[1][0], g_shaderFilesGl2[1][1]));
-      //g_shaderStates[i].reset(new ShaderState(g_shaderFilesGl2[i][0], g_shaderFilesGl2[i][1]));
+		g_shaderStates[i].reset(new ShaderState(g_shaderFilesGl2[i][0], g_shaderFilesGl2[i][1]));
 	 }
 	 else
       g_shaderStates[i].reset(new ShaderState(g_shaderFiles[i][0], g_shaderFiles[i][1]));
@@ -1002,15 +992,3 @@ int main(int argc, char * argv[]) {
     return -1;
   }
 }
-
-// TODO Remove at end
-/*-----------------------------------------------*/
-
-	/* PURPOSE:		What does this function do? (must be present) 
-		RECEIVES:   List every argument name and explain each argument. 
-						(omit if the function has no arguments) 
-		RETURNS:    Explain the value returned by the function. 
-						(omit if the function returns no value) 
-		REMARKS:    Explain any special preconditions or postconditions. 
-						See example below. (omit if function is unremarkable) 
-	*/
